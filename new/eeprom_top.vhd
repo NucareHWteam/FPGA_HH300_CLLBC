@@ -37,6 +37,7 @@ entity eeprom_top is
         clk              : in std_logic;
         Hv_wr_en               : in  std_logic;
         su_wr_en            : in std_logic;
+        sw_wr_en                  : in STD_LOGIC;
         rd_en               : in std_logic;
         GC_write                  : in std_logic_vector(16 - 1 downto 0):= X"6978";
         Temp_write                : in std_logic_vector(16 - 1 downto 0):= X"0401";
@@ -163,6 +164,7 @@ Component eeprom_protocol is
     enable  : out     STD_LOGIC;                             --initiate transaction   
     hv_wr_en   : in     std_logic;
     su_wr_en   : in     std_logic;
+    sw_wr_en    : in    STD_LOGIC;
     rd_en   : in    std_logic;
     cont    : out     STD_LOGIC;                             --continuous mode command
     tx_data : out     STD_LOGIC_VECTOR(8-1 DOWNTO 0);  --data to transmit
@@ -247,6 +249,7 @@ inst_eeprom_protocol  : eeprom_protocol
     enable  => ena,  
     hv_wr_en   => hv_wr_en,
     su_wr_en   => su_wr_en,
+    sw_wr_en   => sw_wr_en,
     rd_en   => rd_en,
     cont    => cont,
     tx_data => tx_data,

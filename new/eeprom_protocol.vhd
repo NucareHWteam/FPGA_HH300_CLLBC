@@ -39,6 +39,7 @@ entity eeprom_protocol is
     enable  : out     STD_LOGIC;                             --initiate transaction
     hv_wr_en   : in std_logic;
     su_wr_en   : in std_logic;
+    sw_wr_en   : in STD_LOGIC;
     rd_en   : in std_logic;
     cont    : out     STD_LOGIC;                             --continuous mode command
     tx_data : out     STD_LOGIC_VECTOR(8-1 DOWNTO 0);  --data to transmit
@@ -86,7 +87,7 @@ end eeprom_protocol;
 
 
 architecture Behavioral of eeprom_protocol is
-TYPE spi_machine IS(spi_idle,write_en, data_state,write_disable,hv_data_state);                           --state machine data type
+TYPE spi_machine IS(spi_idle,write_en, data_state,write_disable,hv_data_state,serial_data_state);                           --state machine data type
   SIGNAL spi_state       : spi_machine:=spi_idle;                              --current state
 signal ena_buf : std_logic;
 signal busy_pipe : std_logic_vector(1 downto 0);
@@ -101,6 +102,8 @@ signal read_mode : std_logic := '0';
 signal spi_end  : std_logic := '0';
 signal read_data : std_logic_vector(16 - 1 downto 0);
 signal hv_write : std_logic:='0';
+signal sw_wr_en_pipe : STD_LOGIC_VECTOR(1 downto 0);
+signal sw_wr_start : STD_LOGIC:='0';
 --signal read_end : std_logic:='0';
 --attribute mark_debug : string;
 --    attribute mark_debug of hv_wr_en : signal is "true";
@@ -146,6 +149,7 @@ begin
         busy_pipe <= busy_pipe(0) & busy;
         hv_wr_en_pipe<= hv_wr_en_pipe(0) & hv_wr_en;
         su_wr_en_pipe<= su_wr_en_pipe(0) & su_wr_en;
+        sw_wr_en_pipe <= sw_wr_en_pipe(0) & sw_wr_en;
         rd_en_pipe<= rd_en_pipe(0) & rd_en;
         if(busy_pipe = "01")then
            busy_cnt <= busy_cnt + 1;
@@ -159,14 +163,22 @@ begin
                     spi_state <= write_en;
                     read_mode <= '0';
                     hv_write  <= '1';
+                    sw_wr_start  <= '0';
                 elsif(su_wr_en_pipe = "01") then 
                     spi_state <= write_en;
                     read_mode <= '0';
                     hv_write  <= '0';
+                    sw_wr_start  <= '0';
                 elsif(rd_en_pipe = "01") then
                     spi_state <= data_state;
                     read_mode <= '1';
                     read_end <= '0';
+                    sw_wr_start  <= '0';     
+                elsif(sw_wr_en_pipe = "01") then
+                    spi_state <= write_en;
+                    read_mode <= '0';
+                    hv_write  <= '0';
+                    sw_wr_start  <= '1';     
                 end if;
             when write_en =>
                 case busy_cnt is
@@ -308,7 +320,7 @@ begin
                                 Ch_1460Kev_read(16 - 1 downto 8) <= rx_data;
                             end if;
                         end if;
-                  when 14 =>  
+                   when 14 =>  
                         if(read_mode = '0') then
                             tx_data         <=D_lab(16 - 1 downto 8); 
                         else
@@ -325,8 +337,8 @@ begin
                             if(busy_pipe = "10") then
                                 D_lab_read(16 - 1 downto 8) <= rx_data;
                             end if;
-                        end if;      
-                   when 16 =>  
+                        end if;
+                    when 16 =>  
                         if(read_mode = '0') then
                             tx_data         <=HV_DAC(16 - 1 downto 8); 
                         else
@@ -341,18 +353,99 @@ begin
                         else
                             tx_data         <=(others => '0');
                             if(busy_pipe = "10") then
-                                HV_DAC_read(16 - 1 downto 8) <= rx_data;
+                                hv_dac_read(16 - 1 downto 8) <= rx_data;
                             end if;
                         end if;
-
-                                 
-                    when 18 =>
-                         
+                    when 18 =>  
+                        if(read_mode = '0') then
+                            tx_data         <=Threshold(8 - 1 downto 0); 
+                        else
+                            tx_data         <=(others => '0');
+                            if(busy_pipe = "10") then
+                                hv_dac_read(8 - 1 downto 0) <= rx_data;
+                            end if;
+                        end if;
+                    when 19 =>  
+                        if(read_mode = '0') then
+                            tx_data         <=SignalTime(8 - 1 downto 0); 
+                        else
+                            tx_data         <=(others => '0');
+                            if(busy_pipe = "10") then
+                                Threshold_read(8 - 1 downto 0) <= rx_data;
+                            end if;
+                        end if;
+                    when 20 =>  
+                        if(read_mode = '0') then
+                            tx_data         <=Data_subtraction(8 - 1 downto 0); 
+                        else
+                            tx_data         <=(others => '0');
+                            if(busy_pipe = "10") then
+                                SignalTime_read(8 - 1 downto 0) <= rx_data;
+                            end if;
+                        end if;
+                    when 21 =>  
+                        if(read_mode = '0') then
+                            tx_data         <=Serial_1(8 - 1 downto 0); 
+                        else
+                            tx_data         <=(others => '0');
+                            if(busy_pipe = "10") then
+                                Data_subtraction_read(8 - 1 downto 0) <= rx_data;
+                            end if;
+                        end if;
+                    when 22 =>  
+                        if(read_mode = '0') then
+                            tx_data         <=Serial_2(8 - 1 downto 0); 
+                        else
+                            tx_data         <=(others => '0');
+                            if(busy_pipe = "10") then
+                                Serial_1_read(8 - 1 downto 0) <= rx_data;
+                            end if;
+                        end if;
+                    when 23 =>  
+                        if(read_mode = '0') then
+                            tx_data         <=Serial_3(8 - 1 downto 0); 
+                        else
+                            tx_data         <=(others => '0');
+                            if(busy_pipe = "10") then
+                                Serial_2_read(8 - 1 downto 0) <= rx_data;
+                            end if;
+                        end if;
+                    when 24 =>  
+                        if(read_mode = '0') then
+                            tx_data         <=Serial_4(8 - 1 downto 0); 
+                        else
+                            tx_data         <=(others => '0');
+                            if(busy_pipe = "10") then
+                                Serial_3_read(8 - 1 downto 0) <= rx_data;
+                            end if;
+                        end if;
+                    when 25 =>  
+                        if(read_mode = '0') then
+                            tx_data         <=Serial_5(8 - 1 downto 0); 
+                        else
+                            tx_data         <=(others => '0');
+                            if(busy_pipe = "10") then
+                                Serial_4_read(8 - 1 downto 0) <= rx_data;
+                            end if;
+                        end if;
+                    when 26 =>  
+                        if(read_mode = '0') then
+                            tx_data         <=Serial_6(8 - 1 downto 0); 
+                        else
+                            tx_data         <=(others => '0');
+                            if(busy_pipe = "10") then
+                                Serial_5_read(8 - 1 downto 0) <= rx_data;
+                            end if;
+                        end if;
+                                
+                      
+                    
+                    when 27 =>
                         if(busy_pipe = "10") then
                             spi_end <= '1';
                             if(read_mode = '1') then
                                 read_end <= '1';
-                                HV_DAC_read(8 - 1 downto 0) <= rx_data;
+                                Serial_6_read(8 - 1 downto 0) <= rx_data; --Reserve
                             end if;    
                         end if;
                         if(spi_end = '1') then
@@ -368,11 +461,10 @@ begin
                                 wr_wait_cnt <= wr_wait_cnt + 1;    
                             end if; 
                         end if; 
-                        cont <= '0';   
-                                 
+                        cont <= '0';    
                     when others =>
+                    end case;                 
                     
-                    end case;
             when write_disable => 
                 case busy_cnt is
                     when 0 =>  
@@ -425,7 +517,54 @@ begin
                         end if; 
                         cont <= '0';  
                     when others =>
-                    end case;       
+                    end case;
+                    when serial_data_state =>
+                    case busy_cnt is
+                        when 0 =>                          
+                             ena_buf         <= '1';                         
+                             tx_data         <= "00000010";   -- write mode
+                             cont            <= '1';  
+                             hv_write        <= '0';
+                        when 1 =>
+                             ena_buf      <= '0';
+                              tx_data         <=X"00";     -- addr
+                                     
+                        when 2 =>
+                             tx_data          <=X"00";     -- addr   
+                        when 3 =>
+                              tx_data         <=X"12";     -- addr   Serial1 addr
+                        when 4 =>  
+                              tx_data         <=Serial_1(8 - 1 downto 0);
+                        when 5 =>  
+                              tx_data         <=Serial_2(8 - 1 downto 0);
+                        when 6 =>  
+                              tx_data         <=Serial_3(8 - 1 downto 0);
+                        when 7 =>  
+                              tx_data         <=Serial_4(8 - 1 downto 0);
+                        when 8 =>  
+                              tx_data         <=Serial_5(8 - 1 downto 0);
+                        when 9 =>  
+                              tx_data         <=Serial_6(8 - 1 downto 0);             
+                        when 10 => 
+                            if(busy_pipe = "10") then
+                                spi_end <= '1';   
+                            end if;
+                            if(spi_end = '1') then
+                                if(wr_wait_cnt = 10000) then
+                                    busy_cnt     <=  0 ;    
+                                    wr_wait_cnt  <=  0 ;  
+                                    if(read_mode = '1') then  
+                                        spi_state <= spi_idle;
+                                    else
+                                        spi_state <= write_disable;
+                                    end if;       
+                                else
+                                    wr_wait_cnt <= wr_wait_cnt + 1;    
+                                end if; 
+                            end if; 
+                            cont <= '0';
+                        when others =>
+                        end case;
             when others =>
             
             end case;        

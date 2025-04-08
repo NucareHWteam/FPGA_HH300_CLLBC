@@ -390,8 +390,8 @@ Component adc_protocol_top is
 end Component;
 
 signal Cal_read_done : std_logic:= '0';
-signal su_write_start : std_logic:='0';
-signal su_write_start_pipe: std_logic_vector(1 downto 0):="00";
+
+
 signal rd_en_start : std_logic:='0';
 signal rd_en_cnt : integer:=0;
 
@@ -444,11 +444,13 @@ signal Signal_time : std_logic_vector(7 downto 0);
 signal Data_subtraction : std_logic_vector(7 downto 0);
  signal rd_end_pipe : std_logic_vector(1 downto 0);
  signal hv_wr_en : std_logic:= '0';
+ signal sw_write_en_pipe : STD_LOGIC_VECTOR(1 downto 0):="00";
 component eeprom_top 
  Port ( --rst  : in std_logic;
         clk              : in std_logic;
         hv_wr_en               : in  std_logic;
         su_wr_en               : in  std_logic;
+        sw_wr_en                  : in STD_LOGIC;
         rd_en               : in std_logic;
         GC_write                  : in std_logic_vector(16 - 1 downto 0):= X"6978";
         Temp_write                : in std_logic_vector(16 - 1 downto 0):= X"0401";
@@ -814,7 +816,7 @@ type Master_state_2 is (UART_RX_idle , UART_1st_Command_RX, UART_RX_1st , UART_R
 UART_RX_8th, UART_RX_9th,  UART_RX_10th, UART_RX_end, UART_RX_Command,UART_RX_cl_1st ,UART_RX_cl_2nd ,UART_RX_cl_3rd ,UART_RX_cl_4th ,UART_RX_cl_5th ,UART_RX_cl_6th
  ,UART_RX_cl_7th ,UART_RX_cl_8th ,UART_RX_cl_9th  ,UART_RX_cl_10th ,UART_RX_cl_11th ,UART_RX_cl_12th ,UART_RX_cl_13th ,UART_RX_cl_14th 
  ,UART_RX_cl_15th ,UART_RX_cl_16th ,UART_RX_cl_17th ,UART_RX_cl_18th ,UART_RX_cl_19th ,UART_RX_cl_20th ,UART_RX_cl_21th ,UART_RX_cl_22th ,UART_RX_cl_23th 
- ,UART_RX_cl_24th ,UART_RX_cl_25th ,UART_RX_cl_26th ,UART_RX_cl_27th ,UART_RX_cl_28th,UART_RX_kc_1st,UART_RX_kc_2nd,UART_RX_kc_3rd,UART_RX_kc_4th,UART_RX_kc_5th,UART_RX_kc_6th   );
+ ,UART_RX_cl_24th ,UART_RX_cl_25th ,UART_RX_cl_26th ,UART_RX_cl_27th ,UART_RX_cl_28th,UART_RX_kc_1st,UART_RX_kc_2nd,UART_RX_kc_3rd,UART_RX_kc_4th,UART_RX_kc_5th,UART_RX_kc_6th,UART_RX_SW );
 signal UART_RX_state : Master_state_2;
 
 
@@ -856,6 +858,8 @@ signal Write_GC_flag_buf : std_logic:='0';
 signal GC_buf:  std_logic_vector( 16 - 1 downto 0);
 signal temp_buf : std_logic_vector( 16 - 1 downto 0);
 signal cl_wr_en_pipe : std_logic_vector(1 downto 0):="00";
+signal serial_write_en : STD_LOGIC:='0';
+signal SW_cnt : integer range 0 to 7:=0;
 
 
 attribute mark_debug : string;
@@ -1725,6 +1729,7 @@ begin
     case UART_RX_state is
      when UART_RX_idle =>		
 --            Write_GC_flag <='0';
+            Write_GC_flag_buf <='0';
             Write_HV_flag <='0'; 
             uart_wait_cnt <= 0; 
             Cal_read_done <= '0';     
@@ -1755,22 +1760,18 @@ begin
            elsif    w_RX_BYTE_out(0) = X"41" and w_RX_BYTE_out(1) = X"34" then -- ASCII "A4"   
                  acq_start <='0';
                  UART_RX_state  <= UART_RX_end;
-           elsif  w_RX_BYTE_out(0) = X"47" and w_RX_BYTE_out(1) = X"43" then -- ASCII "GC" 
+            elsif  w_RX_BYTE_out(0) = X"47" and w_RX_BYTE_out(1) = X"43" then -- ASCII "GC" 
                  UART_RX_state  <= UART_RX_1st;   
-           elsif  w_RX_BYTE_out(0) = X"53" and w_RX_BYTE_out(1) = X"4C" then -- ASCII "SL" 
+            elsif  w_RX_BYTE_out(0) = X"53" and w_RX_BYTE_out(1) = X"4C" then -- ASCII "SL" 
                  UART_RX_state  <=  UART_RX_end;   
                  sleep_en <= '1';
 --                 acq_start <= '0';
-           elsif  w_RX_BYTE_out(0) = X"41" and w_RX_BYTE_out(1) = X"4B" then -- ASCII "GQ" 
+            elsif  w_RX_BYTE_out(0) = X"41" and w_RX_BYTE_out(1) = X"4B" then -- ASCII "GQ" 
                  UART_RX_state  <=  UART_RX_end;   
                  sleep_en <= '0';
---                 acq_start <= '1'; 
---           elsif  w_RX_BYTE_out(0) = X"47" and w_RX_BYTE_out(1) = X"50" then -- ASCII "GP"
---                 UART_RX_state  <=  UART_RX_end; 
---           elsif  w_RX_BYTE_out(0) = X"50" and w_RX_BYTE_out(1) = X"50" then -- ASCII "PP" 
-                 
---                 UART_RX_state  <=  UART_RX_end;  
-          elsif  w_RX_BYTE_out(0) = X"43" and w_RX_BYTE_out(1) = X"4C" then -- ASCII "CL"
+            elsif  w_RX_BYTE_out(0) = X"53" and w_RX_BYTE_out(1) = X"57" then -- ASCII "SW" 
+                  UART_RX_state  <=  UART_RX_SW; 
+            elsif  w_RX_BYTE_out(0) = X"43" and w_RX_BYTE_out(1) = X"4C" then -- ASCII "CL"
                 UART_RX_state  <= UART_RX_cl_1st;           
             elsif  w_RX_BYTE_out(0) = X"4B" and w_RX_BYTE_out(1) = X"43" then -- ASCII "KC"
                 UART_RX_state  <= UART_RX_kc_1st;     
@@ -1999,8 +2000,19 @@ begin
 		
                --reserve
               UART_RX_state  <= UART_RX_end;		
-            end if;                      
+            end if;  
+        when UART_RX_SW => 
+            if(SW_cnt = 0)then     if  w_RX_DV = '1'  then Serial_1_write(8-1 downto 0)<=w_RX_BYTE;   SW_cnt <= SW_cnt + 1;  end if;
+            elsif(SW_cnt = 1)then  if  w_RX_DV = '1'  then Serial_2_write(8-1 downto 0)<=w_RX_BYTE;    SW_cnt <= SW_cnt + 1;  end if;
+            elsif(SW_cnt = 2)then  if  w_RX_DV = '1'  then Serial_3_write(8-1 downto 0)<=w_RX_BYTE; SW_cnt <= SW_cnt + 1;  end if;
+            elsif(SW_cnt = 3)then  if  w_RX_DV = '1'  then Serial_4_write(8-1 downto 0)<=w_RX_BYTE;  SW_cnt <= SW_cnt + 1;  end if;
+            elsif(SW_cnt = 4)then  if  w_RX_DV = '1'  then Serial_5_write(8-1 downto 0)<=w_RX_BYTE;  SW_cnt <= SW_cnt + 1;  end if;
+            elsif(SW_cnt = 5)then  if  w_RX_DV = '1'  then Serial_6_write(8-1 downto 0)<=w_RX_BYTE;  SW_cnt <= SW_cnt + 1;  end if;
+            elsif(SW_cnt = 6)then  if  w_RX_DV = '1'  then if(w_RX_BYTE =X"36")then  Serial_write_en <= '1'; SW_cnt <= SW_cnt + 1; end if; end if;--6
+            elsif(SW_cnt = 7)then  if  w_RX_DV = '1'  then if(w_RX_BYTE =X"36")then  SW_cnt <= 0; UART_RX_state  <= UART_RX_end; end if;  end if;--6      
+            end if;                         
       when   UART_RX_end=>
+            serial_write_en <= '0';
             GC_Check <= '0';
             SW_Write_init <='0'; 
             GS_on <= '0';
@@ -2193,6 +2205,7 @@ inst_eeprom_top : eeprom_top
         clk                =>   clk_uart,
         hv_wr_en           =>   hv_wr_en,
         su_wr_en           =>   Cal_read_done,
+        sw_wr_en           =>   serial_write_en,
         rd_en              =>   rd_en_start, 
         GC_write                 =>   GC_Buf, 
         Temp_write               =>   temp_cal_data, 
@@ -2204,12 +2217,12 @@ inst_eeprom_top : eeprom_top
 --        Threshold_write          =>   Main_threshold(9 downto 2), 
 --        SignalTime_write         =>   Main_Signal_TIME_1_buf, 
 --        Data_subtraction_write   =>   Main_Data_subtraction_1(7 downto 0), 
---        Serial_1_write           =>   BNC_Serial_1, 
---        Serial_2_write           =>   BNC_Serial_2,    
---        Serial_3_write           =>   BNC_Serial_3, 
---        Serial_4_write           =>   BNC_Serial_4, 
---        Serial_5_write           =>   BNC_Serial_5, 
---        Serial_6_write           =>   BNC_Serial_6, 
+        Serial_1_write           =>   BNC_Serial_1, 
+        Serial_2_write           =>   BNC_Serial_2,    
+        Serial_3_write           =>   BNC_Serial_3, 
+        Serial_4_write           =>   BNC_Serial_4, 
+        Serial_5_write           =>   BNC_Serial_5, 
+        Serial_6_write           =>   BNC_Serial_6, 
         
         GC_read                => GC_read,
         Temp_read              => Temp_read,
@@ -2221,12 +2234,12 @@ inst_eeprom_top : eeprom_top
 --        Threshold_read         => Threshold_read,
 --        SignalTime_read        => SignalTime_read,
 --        Data_subtraction_read  => Data_subtraction_read,
---        Serial_1_read          => Serial_1_read,
---        Serial_2_read          => Serial_2_read,
---        Serial_3_read          => Serial_3_read,
---        Serial_4_read          => Serial_4_read,
---        Serial_5_read          => Serial_5_read,
---        Serial_6_read          => Serial_6_read,
+       Serial_1_read          => Serial_1_read,
+       Serial_2_read          => Serial_2_read,
+       Serial_3_read          => Serial_3_read,
+       Serial_4_read          => Serial_4_read,
+       Serial_5_read          => Serial_5_read,
+       Serial_6_read          => Serial_6_read,
         
         read_end               => read_end,
         
@@ -2241,7 +2254,8 @@ inst_eeprom_top : eeprom_top
 begin
     if(rising_edge(clk_uart)) then
         read_end_pipe <= read_end_pipe(0) & read_end;
-        su_write_start_pipe <= su_write_start_pipe(0) & Cal_read_done;
+        cl_wr_en_pipe <= cl_wr_en_pipe(0) & Cal_read_done;
+        sw_write_en_pipe <= sw_write_en_pipe(0) & serial_write_en;
     end if;
 end process;
 
@@ -2253,35 +2267,30 @@ begin
             if(Ch_32Kev_read /= X"FFFF")        then  Cs137_32Kev <= Ch_32Kev_read; end if;
             if(Ch_662Kev_read /= X"FFFF")       then  Cs137_662Kev <= Ch_662Kev_read; end if;
             if(Ch_1460Kev_read /= X"FFFF")      then  K40_1460Kev <= Ch_1460Kev_read; end if;
-          --  K40_1460Kev <= X"0352";  -- 800 only for Test
-            --K40_1460Kev <= X"038E";  -- 910 only for Test 
---            if(d_lab_read /= X"FFFF")           then  det_label     <= d_lab_read; end if;
---            if(Threshold_read /= X"FF")         then  Main_threshold <= "000"&Threshold_read&"00"; end if;  -- low 2bit x
---            if(SignalTime_read /= X"FF")        then  Main_Signal_TIME_1 <= SignalTime_read(6 downto 0); end if;
---            if(Data_subtraction_read /= X"FF")  then  Main_data_subtraction_1 <= "000"&Data_subtraction_read&"00"; end if;
---            if(Serial_1_read /= X"FF")          then  BNC_Serial_1 <= Serial_1_read; end if;
---            if(Serial_2_read /= X"FF")          then  BNC_Serial_2 <= Serial_2_read; end if;
---            if(Serial_3_read /= X"FF")          then  BNC_Serial_3 <= Serial_3_read; end if;
---            if(Serial_4_read /= X"FF")          then  BNC_Serial_4 <= Serial_4_read; end if;
---            if(Serial_5_read /= X"FF")          then  BNC_Serial_5 <= Serial_5_read; end if;
---            if(Serial_6_read /= X"FF")          then  BNC_Serial_6 <= Serial_6_read; end if;
+      
+            if(Serial_1_read /= X"FF")          then  BNC_Serial_1 <= Serial_1_read; end if;
+            if(Serial_2_read /= X"FF")          then  BNC_Serial_2 <= Serial_2_read; end if;
+            if(Serial_3_read /= X"FF")          then  BNC_Serial_3 <= Serial_3_read; end if;
+            if(Serial_4_read /= X"FF")          then  BNC_Serial_4 <= Serial_4_read; end if;
+            if(Serial_5_read /= X"FF")          then  BNC_Serial_5 <= Serial_5_read; end if;
+            if(Serial_6_read /= X"FF")          then  BNC_Serial_6 <= Serial_6_read; end if;
         end if; 
-        if(su_write_start_pipe = "01") then -- eeprom write
+        if(cl_wr_en_pipe = "01") then -- eeprom write
             if(temp_write /= X"0000")           then  temp_buf <= temp_write; end if;
             if(Ch_32Kev_write /= X"0000")        then  Cs137_32Kev <= Ch_32Kev_write; end if;
             if(Ch_662Kev_write /= X"0000")       then  Cs137_662Kev <= Ch_662Kev_write; end if;
             if(Ch_1460Kev_write /= X"0000")      then  K40_1460Kev <= Ch_1460Kev_write; end if;
---            if(d_lab_write /= X"0000")           then  det_label     <= d_lab_write; end if;
---            if(Threshold_write /= X"00")         then  Main_threshold <= "000"&Threshold_write&"00"; end if;  -- low 2bit x
---            if(SignalTime_write /= X"00")        then  Main_Signal_TIME_1 <= SignalTime_write(6 downto 0); end if;
---            Main_data_subtraction_1 <= "000"&Data_subtraction_write&"00"; 
---            if(Serial_1_write /= X"00")          then  BNC_Serial_1 <= Serial_1_write; end if;
---            if(Serial_2_write /= X"00")          then  BNC_Serial_2 <= Serial_2_write; end if;
---            if(Serial_3_write /= X"00")          then  BNC_Serial_3 <= Serial_3_write; end if;
---            if(Serial_4_write /= X"00")          then  BNC_Serial_4 <= Serial_4_write; end if;
---            if(Serial_5_write /= X"00")          then  BNC_Serial_5 <= Serial_5_write; end if;
---            if(Serial_6_write /= X"00")          then  BNC_Serial_6 <= Serial_6_write; end if;
+
         
+        end if;
+        if( sw_write_en_pipe = "01"  ) then
+            if(Serial_1_write /= X"00")          then  BNC_Serial_1 <= Serial_1_write; end if;
+            if(Serial_2_write /= X"00")          then  BNC_Serial_2 <= Serial_2_write; end if;
+            if(Serial_3_write /= X"00")          then  BNC_Serial_3 <= Serial_3_write; end if;
+            if(Serial_4_write /= X"00")          then  BNC_Serial_4 <= Serial_4_write; end if;
+            if(Serial_5_write /= X"00")          then  BNC_Serial_5 <= Serial_5_write; end if;
+            if(Serial_6_write /= X"00")          then  BNC_Serial_6 <= Serial_6_write; end if;
+          
         end if;
     end if;
 end process;
