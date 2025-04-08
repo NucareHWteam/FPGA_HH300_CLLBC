@@ -1821,9 +1821,9 @@ begin
                 UART_RX_state  <= UART_RX_end;
              
                   if 	w_RX_BYTE = X"01" then
---                    GC(15 downto 8)<=w_RX_BYTE_out(2);
---                    GC(7 downto 0)<=w_RX_BYTE_out(3);
---                    Write_GC_flag <='1';
+                    GC_sw_Buf(15 downto 8)<=w_RX_BYTE_out(2);
+                    GC_sw_Buf(7 downto 0)<=w_RX_BYTE_out(3);
+                    Write_GC_flag_buf <='1';
                     
                   else
                     HV_DAC(15 downto 8)<=w_RX_BYTE_out(2);
