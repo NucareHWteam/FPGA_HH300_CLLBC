@@ -1817,76 +1817,24 @@ begin
              if  w_RX_DV = '1' then
 		
               w_RX_BYTE_out(5)<=w_RX_BYTE;
-              if SW_Write_init = '1' then
-                  UART_RX_state  <= UART_RX_5th;
-                  
-              else
+              
                 UART_RX_state  <= UART_RX_end;
              
-                if 	w_RX_BYTE = X"01" then
+                  if 	w_RX_BYTE = X"01" then
 --                    GC(15 downto 8)<=w_RX_BYTE_out(2);
 --                    GC(7 downto 0)<=w_RX_BYTE_out(3);
 --                    Write_GC_flag <='1';
                     
-               else
+                  else
                     HV_DAC(15 downto 8)<=w_RX_BYTE_out(2);
                     HV_DAC(7 downto 0)<=w_RX_BYTE_out(3);
                     Write_HV_flag <='1';   
                     hv_wr_en      <='1';                        
                  end if;   
-              end if;  		
+               		
             end if;   
             
-     when  UART_RX_5th=>  
-             if  w_RX_DV = '1' then
-		
-              w_RX_BYTE_out(6)<=w_RX_BYTE;
-              UART_RX_state  <= UART_RX_6th;		
-            end if;                 
-      when  UART_RX_6th=>  
-             if  w_RX_DV = '1' then
-		
-              w_RX_BYTE_out(7)<=w_RX_BYTE;
-              UART_RX_state  <= UART_RX_7th;		
-            end if;                
-      when  UART_RX_7th=>  
-             if  w_RX_DV = '1' then
-		
-              w_RX_BYTE_out(8)<=w_RX_BYTE;
-              UART_RX_state  <= UART_RX_8th;		
-            end if;                
-            
-      when  UART_RX_8th=>  
-             if  w_RX_DV = '1' then
-		
-              w_RX_BYTE_out(9)<=w_RX_BYTE;
-              UART_RX_state  <=UART_RX_9th;		
-            end if;                
-        when  UART_RX_9th=>  
-             if  w_RX_DV = '1' then
-		
-              w_RX_BYTE_out(10)<=w_RX_BYTE;
-              UART_RX_state  <= UART_RX_10th;		
-            end if;                
-         when  UART_RX_10th=>  
-             if  w_RX_DV = '1' then
-		
-              w_RX_BYTE_out(11)<=w_RX_BYTE;
-              UART_RX_state  <= UART_RX_end;		
---               Write_GC_flag <='1';
-               Write_HV_flag <='1';
-                if 	w_RX_BYTE = X"36" then
---                    GC(15 downto 8)<=w_RX_BYTE_out(6);
---                    GC(7 downto 0)<=w_RX_BYTE_out(7);
---                    if HV_Fix = '0' then
-                        HV_DAC(15 downto 8)<=w_RX_BYTE_out(4);
-                        HV_DAC(7 downto 0)<=w_RX_BYTE_out(5);        
---                    elsif HV_Fix = '1' then         
---                        HV_ADC(11 downto 8)<= w_RX_BYTE_out(8)(3 downto 0);             
---                        HV_ADC(7 downto 0)<= w_RX_BYTE_out(9);                     
---                    end if;       
-                 end if;    
-            end if;   
+      
    
                                           
     when  UART_RX_cl_1st=>     
@@ -2059,215 +2007,12 @@ begin
             UART_RX_state  <= UART_RX_idle;                             
 	when others => UART_RX_state  <= UART_RX_idle;
 	end case;
-	
-	
-   
- 
---  case HV_Contr_state is
---     when  HV_Contr_idle =>	
---       if HV_Contr_Rdy='1' then 
---           if cnt_HV_Contr = 500000 then 
---            -- HV_Contr_state<= HV_Contr_comp;
---               cnt_HV_Contr <= 0;
---            elsif  cnt_HV_Contr = 400000 then              
---            cnt_HV_Contr<=cnt_HV_Contr +1;             
---         --   XADC_Rst<='0';    
---             elsif  cnt_HV_Contr = 0 then              
---            cnt_HV_Contr<=cnt_HV_Contr +1;             
---         --   XADC_Rst<='1';              
-                       
---            else
 
---            cnt_HV_Contr<=cnt_HV_Contr +1;
---           end if;    
---       end if;
-          
---       when  HV_Contr_comp =>	    
-      
---        if HV_ADC > HV_buf + "101000" then
---            HV_Contr_state<= HV_Contr_Incr;
---            HV_Gap <= HV_ADC - HV_buf;
---        elsif HV_buf  > HV_ADC + "101000" then
---             HV_Contr_state<= HV_Contr_dicr;
---             HV_Gap <= HV_buf - HV_ADC;
---        else
---            if HV_ADC > HV_buf then
---             HV_Contr_state<= HV_Contr_Incr_short;
---             HV_Gap <= HV_ADC - HV_buf;
---            elsif  HV_ADC < HV_buf then
---             HV_Contr_state<= HV_Contr_dicr_short;
---              HV_Gap <= HV_buf - HV_ADC;            
---            elsif  HV_ADC = HV_buf then
---              HV_Contr_state<= HV_Contr_Watch;  
-  
---            end if;   
---        end if;
-     
-          
---     when  HV_Contr_Incr =>	       
---            HV_DAC <= HV_DAC + (HV_Gap&"0000");  
---            HV_Contr_Write_HV_flag<='1';    
---             HV_Contr_state<= HV_Contr_hold;
---     when   HV_Contr_dicr =>	  
---           HV_DAC <= HV_DAC - (HV_Gap&"0000");      
---            HV_Contr_Write_HV_flag<='1';     
---            HV_Contr_state<= HV_Contr_hold;
---     when   HV_Contr_Incr_short =>
-
---            HV_DAC <= HV_DAC + ("00"&HV_Gap&"00");  
---            HV_Contr_Write_HV_flag<='1';   
---            HV_Contr_state<= HV_Contr_hold;
---     when   HV_Contr_dicr_short =>            
---            HV_DAC<= HV_DAC - ("00"&HV_Gap&"00");             
---            HV_Contr_Write_HV_flag<='1';  
---            HV_Contr_state<= HV_Contr_hold;                
---     when   HV_Contr_Incr_short_LPF =>
---            HV_DAC <= HV_DAC + ("000"&HV_Gap&"0");  
---            HV_Contr_Write_HV_flag<='1';   
---            HV_Contr_state<= HV_Contr_hold;
---     when   HV_Contr_dicr_short_LPF =>            
---            HV_DAC<= HV_DAC - ("000"&HV_Gap&"0");             
---            HV_Contr_Write_HV_flag<='1';  
---            HV_Contr_state<= HV_Contr_hold;               
-                            
---      when   HV_Contr_hold =>     
---        if cnt_HV_Contr = 500000 then
---           HV_Contr_state<= HV_Contr_comp;
---           cnt_HV_Contr <= 0;
---           HV_Contr_Write_HV_flag<='0';
---        elsif  cnt_HV_Contr = 400000 then              
---            cnt_HV_Contr<=cnt_HV_Contr +1;             
---         --   XADC_Rst<='0';            
---         elsif cnt_HV_Contr = 0 then  
---            cnt_HV_Contr<=cnt_HV_Contr +1;             
---        --    XADC_Rst<='1';         
---         else
---           cnt_HV_Contr<=cnt_HV_Contr +1;
---        end if;
---      when  HV_Contr_Watch =>   
---        if HV_ADC > HV_buf + "101000"  then        
---            HV_Contr_state<= HV_Contr_Incr;
---            HV_Gap <= HV_ADC - HV_buf;
---        elsif HV_buf  > HV_ADC + "101000" then
---             HV_Contr_state<= HV_Contr_dicr;
---             HV_Gap <= HV_buf - HV_ADC;  
---        else
---           if HV_ADC > HV_buf + "10100"  then        
---            HV_Contr_state<= HV_Contr_Incr_short_LPF;
---            HV_Gap <= "000000000001";
---        elsif HV_buf  > HV_ADC + "10100" then
---             HV_Contr_state<= HV_Contr_dicr_short_LPF;
---             HV_Gap <= "000000000001";    
---        end if;        
---         end if;    
-       
---      end case;
-   
-     
-	
 	
 end if;
 end process;	
 
 
---process(clk_uart) -- UART Bat Recv - Test
---begin
---    if rising_edge(clk_uart) then
-              
-               
-                          
-----    case UART_Bat_Trans_state is
-----     when UART_idle_Trans_Bat =>	   
-----          r_TX_DV_Bat   <= '0';
-----          if acq_start = '1' then
-----                UART_Bat_Trans_state <= Uart_1st_Trans_Bat;    
-----         end if;
-----      when  UART_1st_Trans_Bat =>   
-----		 r_TX_DV_Bat   <= '1';     
-		 
-----       if  Power_kill_on = '1' then
-----          r_TX_BYTE_Bat<=X"BD";
-----       else
-----          r_TX_BYTE_Bat<=X"BF";   
-----       end if;
-          
-----          UART_Bat_Trans_state <=UART_1st_Trans_Hold_Bat;  
-          
-----    when UART_1st_Trans_Hold_Bat =>	  
-----           r_TX_DV_Bat   <= '0';    
-----          if  w_TX_DONE_Bat = '1' then
-              
-----              UART_Bat_Trans_state  <= UART_end_Bat;
-           
-----          end if;  
-----        Power_kill_en <= '0';      
-----        Power_kill_on<='0';      
-----   	 when UART_end_Bat =>   
-----   	    if Power_kill_en = '1' then
-----   	        UART_Bat_Trans_state<=UART_idle_Trans_Bat;
-----   	        Power_kill_on <='1';
-----   	     end if;   
-----   	end case;        
-    
---   	case UART_Bat_state is
---     when UART_idle_Bat =>	    
---       if  w_RX_DV_Bat = '1' then
---		  w_RX_BYTE_out_Bat_H<=w_RX_BYTE_Bat;
---		  UART_Bat_state<=UART_1st_Recv_Bat;
---		end if;
---		 Hold_cnt<="00";
---    when UART_1st_Recv_Bat =>	
---    	if Hold_cnt = "11" then
---    	    UART_Bat_state<= UART_1st_Recvs_Hold_Bat;
---    	    Hold_cnt <= "00";
---    	 else
---    	    Hold_cnt <= Hold_cnt + '1';  	
---    	 end if;   
---    when UART_1st_Recvs_Hold_Bat =>	    
---    	 if  w_RX_DV_Bat = '1' then
---		  w_RX_BYTE_out_Bat_M<=w_RX_BYTE_Bat;
---		  UART_Bat_state<=UART_2st_Recv_Bat;
---		 end if; 
---		  Hold_cnt <= "00";
---    when UART_2st_Recv_Bat =>	
---    	if Hold_cnt = "11" then
---    	    UART_Bat_state<= UART_2st_Recvs_Hold_Bat;
---    	    Hold_cnt <= "00";
---    	 else
---    	    Hold_cnt <= Hold_cnt + '1';  	
---    	 end if;   
---    when UART_2st_Recvs_Hold_Bat =>	    
---    	 if  w_RX_DV_Bat = '1' then
---		  w_RX_BYTE_out_Bat_L<=w_RX_BYTE_Bat;
---		  UART_Bat_state<=UART_end_Bat;
---		 end if; 		 
---		  Hold_cnt <= "00";
---     when UART_end_Bat =>
---     	if Hold_cnt = "11" then
---    	    UART_Bat_state<=UART_idle_Bat;
---    	    Hold_cnt <= "00";
---    	 else
---    	    Hold_cnt <= Hold_cnt + '1';    
---    	  end if;
---    end case;	        
-    
---    if w_RX_BYTE_out_Bat_H > w_RX_BYTE_out_Bat_L then
---        w_RX_Test <= '0';
---    elsif w_RX_BYTE_out_Bat_H > w_RX_BYTE_out_Bat_M then
---         w_RX_Test <= '1';           
---    end if;
-    
---    if w_RX_BYTE_out_Bat_H = X"5A" then  
---        Power_kill_flag <='1';
---    else
---        Power_kill_flag <='0';     
---     end if;   
-     
-  
-     
-     
---end if;
---end process;		
 
 
 
