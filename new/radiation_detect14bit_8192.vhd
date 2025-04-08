@@ -891,7 +891,7 @@ flag_CH<='0';
                  trans_stay <= '0';		  
 		  else
                 if PSD_Counter = "11010" then  -- 120ns
-                   if dout > "0000111111111" and dout < "11111111111111111111"  then -- Ch 10 under cut
+                   if dout > "000011111111" and dout < "1111111111111111111"  then -- Ch 10 under cut
 --                        if PSD_Factor_bit_2d = '0'  or dout < "10100010100111111111" then  
                                    
                                 if cnt_divide="1010" then

@@ -1700,7 +1700,11 @@ begin
            
         if(GC_read = X"FFFF" or GC_read=X"0000")then  
         else GC_buf <= GC_read; end if;   
-          
+        if(temp_correction_on = '0') then
+          GC_buf <= GC_sw_Buf;  
+        else
+          GC_buf <= GC_cal_out;  
+        end if;
      end if;
 	
 	
@@ -2364,9 +2368,9 @@ begin
             if(temp_correction_on = '0')then
                 GC <= GC_sw_Buf;
                 Write_GC_flag <= Write_GC_flag_Buf;
-                GC_buf <= GC_sw_Buf;
+               
             else
-                GC_buf <= GC_cal_out;
+                
                 if(GC_Change_cnt = 10000000) then
                     GC_Change_cnt <= 0;
                     GC <= GC_cal_out;--final_GC_out;
